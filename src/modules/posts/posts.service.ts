@@ -1,55 +1,47 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Post } from './interfaces/post.interface';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Post, PostDocument } from './schemas/post.schema';
 
 @Injectable()
 export class PostsService {
-  private posts: Post[] = [];
+  constructor(@InjectModel(Post.name) private postModel: Model<PostDocument>) {}
 
-  createPost(createPostDto: CreatePostDto): Post {
-    const post: Post = {
-      id: this.posts.length + 1,
-      ...createPostDto,
-      createdAt: new Date()
-    };
-    this.posts.push(post);
-    return post;
+  async createPost(createPostDto: CreatePostDto): Promise<Post> {
+    const newPost = new this.postModel(createPostDto);
+    return newPost.save();
   }
 
-  getAllPosts(): Post[] {
-    return this.posts;
+  async getAllPosts(): Promise<Post[]> {
+    return this.postModel.find().sort({ createdAt: -1 }).exec();
   }
 
-  getPostById(id: number): Post {
-    const post = this.posts.find(post => post.id === id);
+  async getPostById(id: string): Promise<Post> {
+    const post = await this.postModel.findById(id).exec();
     if (!post) {
       throw new NotFoundException(`Post with ID ${id} not found`);
     }
     return post;
   }
 
-  updatePost(id: number, updatePostDto: UpdatePostDto): Post {
-    const postIndex = this.posts.findIndex(post => post.id === id);
-    if (postIndex === -1) {
+  async updatePost(id: string, updatePostDto: UpdatePostDto): Promise<Post> {
+    const updatedPost = await this.postModel
+      .findByIdAndUpdate(id, updatePostDto, { new: true })
+      .exec();
+
+    if (!updatedPost) {
       throw new NotFoundException(`Post with ID ${id} not found`);
     }
-
-    this.posts[postIndex] = {
-      ...this.posts[postIndex],
-      ...updatePostDto,
-    };
-
-    return this.posts[postIndex];
+    return updatedPost;
   }
 
-  deletePost(id: number): void {
-    const postIndex = this.posts.findIndex(post => post.id === id);
-    if (postIndex === -1) {
+  async deletePost(id: string): Promise<void> {
+    const result = await this.postModel.findByIdAndDelete(id).exec();
+    if (!result) {
       throw new NotFoundException(`Post with ID ${id} not found`);
     }
-
-    this.posts.splice(postIndex, 1);
   }
 
 }
