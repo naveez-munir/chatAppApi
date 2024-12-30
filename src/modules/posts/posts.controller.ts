@@ -8,14 +8,18 @@ import {
   HttpStatus,
   Param,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
-import { Post} from './schemas/post.schema';
+import { Post} from '../../schemas/post.schema';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { ParseObjectIdPipe } from 'src/common/pipes/parse-object-id.pipe';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Controller('posts')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
